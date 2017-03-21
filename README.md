@@ -1,2 +1,2 @@
 # MRCheckBoxButton
-Check box button, add border, fill color along with tick drawing animation
+Check box button, add border, fill color along with tick drawing animation. Use storyboard to set properties or code whatver. Too lazy to complete the readme D:. Please download sample to use it, its quite simple really. 
