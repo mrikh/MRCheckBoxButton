@@ -22,7 +22,7 @@ class ViewController: UIViewController {
 
     @IBAction func buttonAction(_ sender: MRCheckBoxButton) {
         
-        sender.isSelected = !sender.isSelected
+        sender.updateSelection(select: !sender.currentlySelected)
     }
 
 }
