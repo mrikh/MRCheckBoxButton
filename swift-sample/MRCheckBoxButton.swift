@@ -9,73 +9,48 @@
 import UIKit
 
 class MRCheckBoxButton: UIButton {
-    
+
+    private (set) open var currentlySelected : Bool = false
+
+    /// Tick color to use
     @IBInspectable var tickColor : UIColor = UIColor.clear{
-        
         didSet{
-            
             if let tempLayer = searchForLayer(){
-                
                 tempLayer.strokeColor = tickColor.cgColor
-                
-                return
-
             }
         }
     }
     
+    /// Background color for the tick
     @IBInspectable var tickBackgroundFillColor : UIColor = UIColor.clear{
-        
         didSet{
-
-            self.layer.backgroundColor = tickBackgroundFillColor.cgColor
-        }
-    }
-
-    
-    @IBInspectable var tickWidth : CGFloat = 2.0{
-        
-        didSet{
-            
-            if let tempLayer = searchForLayer(){
-                
-                tempLayer.lineWidth = tickWidth
-                
-                return
-                
+            if currentlySelected{
+                self.layer.backgroundColor = tickBackgroundFillColor.cgColor
             }
         }
     }
     
-    @IBInspectable var borderColor : UIColor = UIColor.clear{
-        
+    /// Width of the tick
+    @IBInspectable var tickWidth : CGFloat = 2.0{
         didSet{
-            
+            if let tempLayer = searchForLayer(){
+                tempLayer.lineWidth = tickWidth
+                return
+            }
+        }
+    }
+    
+    /// Border of the view containing the tick
+    @IBInspectable var borderColor : UIColor = UIColor.clear{
+        didSet{
             layer.borderColor = borderColor.cgColor
         }
     }
 
+    /// Border od the view having the tick
     @IBInspectable var borderWidth : CGFloat = 0.0{
-        
         didSet{
-            
             layer.borderWidth = borderWidth
-        }
-    }
-
-    
-    override var isSelected: Bool{
-        
-        willSet {
-            
-            if newValue{
-                
-                fillColor()
-                
-            }else{
-                
-                clearColor()
-            }
         }
     }
     
@@ -85,14 +60,12 @@ class MRCheckBoxButton: UIButton {
         
         //initially it should be clear as did set gets called before and sets it to default color
         self.layer.backgroundColor = UIColor.clear.cgColor
-        
         createTick()
     }
     
     override func layoutSubviews() {
         
         if let tempLayer = searchForLayer(){
-            
             tempLayer.path = calculatePath().cgPath
         }
         
@@ -102,93 +75,71 @@ class MRCheckBoxButton: UIButton {
     func createTick(){
         
         let tickLayer = CAShapeLayer()
-        
         tickLayer.path = calculatePath().cgPath;
-        
         tickLayer.lineWidth = tickWidth
- 
         tickLayer.fillColor = UIColor.clear.cgColor
-        
         //so that we don't draw it right away
         tickLayer.strokeEnd = 0.0
-        
         tickLayer.strokeColor = tickColor.cgColor
-        
         tickLayer.setValue(1005, forKey: "animationTag")
-        
         layer.addSublayer(tickLayer)
+    }
+
+    func updateSelection(select : Bool, animated : Bool = false){
+
+        //dont update
+        if currentlySelected == select {return}
+        currentlySelected = select
+        currentlySelected ? fillColor(animated : animated) : clearColor(animated : animated)
     }
     
     //MARK: Private
     
-    private func fillColor(){
+    private func fillColor(animated : Bool){
 
-        UIView.animate(withDuration: 0.2, animations: {
-            
+        UIView.animate(withDuration: animated ? 0.2 : 0.0, animations: {
             self.layer.backgroundColor = self.tickBackgroundFillColor.cgColor
-            
         }) { (animated) in
-            
-            self.showTick()
+            self.showTick(animated : animated)
         }
     }
     
-    private func clearColor(){
+    private func clearColor(animated : Bool){
+        self.clearTick(animated : animated)
         
-        self.clearTick()
-        
-        UIView.animate(withDuration: 0.2, animations: {
-
+        UIView.animate(withDuration: animated ? 0.2 : 0.0, animations: {
             self.layer.backgroundColor = UIColor.clear.cgColor
         })
     }
     
-    private func showTick(){
-        
-        animating(fromValue: 0, andToValue: 1, andShouldClear: false)
+    private func showTick(animated : Bool){
+
+        animating(fromValue: 0, andToValue: 1, andShouldClear: false, animated : animated)
     }
     
-    private func clearTick(){
-        
-        animating(fromValue: 1, andToValue: 0, andShouldClear: true)
+    private func clearTick(animated : Bool){
+
+        animating(fromValue: 1, andToValue: 0, andShouldClear: true, animated : animated)
     }
     
-    private func animating(fromValue from:Int, andToValue to:Int, andShouldClear clear:Bool){
+    private func animating(fromValue from:Int, andToValue to:Int, andShouldClear clear:Bool, animated : Bool){
         
         //get our shapeLayer reference
-        guard let shapeLayer = searchForLayer() else {
-            
-            return
-        }
+        guard let shapeLayer = searchForLayer() else { return }
         
         let animation = CABasicAnimation(keyPath: "strokeEnd")
-        
-        animation.duration = 0.2
-        
+        animation.duration = animated ? 0.2 : 0.0
         animation.fromValue = from
-        
         animation.toValue = to
-        
-        animation.timingFunction = CAMediaTimingFunction(name:kCAMediaTimingFunctionLinear)
+        animation.timingFunction = CAMediaTimingFunction(name:CAMediaTimingFunctionName.linear)
         
         if clear{
-            
-            if shapeLayer.strokeEnd != 1.0{
-                
-                return;
-            }
+            if shapeLayer.strokeEnd != 1.0{ return }
             
             shapeLayer.removeAnimation(forKey: "strokeEnd")
-            
             shapeLayer.strokeEnd = 0.0
-            
         }else{
-            
-            if shapeLayer.strokeEnd != 0.0{
-                
-                return;
-            }
-            
+            if shapeLayer.strokeEnd != 0.0{ return }
             shapeLayer.strokeEnd = 1.0
         }
         
@@ -200,22 +151,14 @@ class MRCheckBoxButton: UIButton {
         
         var shapeLayer : CAShapeLayer?
         
-        guard let subLayers = layer.sublayers else{
-            
-            return shapeLayer
-        }
+        guard let subLayers = layer.sublayers else{ return shapeLayer }
         
         for layer in subLayers{
             
-            guard let value =  layer.value(forKey: "animationTag"), let intValue = value as? Int else {
-                
-                continue
-            }
+            guard let value =  layer.value(forKey: "animationTag"), let intValue = value as? Int else { continue }
             
             if intValue == 1005{
-                
                 shapeLayer = layer as? CAShapeLayer
-                
                 break
             }
         }
@@ -228,19 +171,14 @@ class MRCheckBoxButton: UIButton {
         let path = UIBezierPath()
         
         let wholeButtonWidth = bounds.size.width
-        
         let wholeButtonHeight = bounds.size.height
         
-        let firstPoint = CGPoint(x: wholeButtonWidth/2.0 - wholeButtonWidth/4.0, y: wholeButtonHeight/2.0)
-        
-        let secondPoint = CGPoint(x:firstPoint.x + wholeButtonWidth/8.0, y: firstPoint.y + wholeButtonHeight/4.0)
-        
-        let thirdPoint = CGPoint(x: secondPoint.x + wholeButtonWidth/2.0, y:secondPoint.y - wholeButtonHeight/2.0)
+        let firstPoint = CGPoint(x: wholeButtonWidth/2.0 - wholeButtonWidth/3.5, y: wholeButtonHeight/2.0)
+        let secondPoint = CGPoint(x:firstPoint.x + wholeButtonWidth/6.5, y: firstPoint.y + wholeButtonHeight/6.0)
+        let thirdPoint = CGPoint(x: secondPoint.x + wholeButtonWidth/2.5, y:secondPoint.y - wholeButtonHeight/2.5)
         
         path.move(to: firstPoint)
-        
         path.addLine(to: secondPoint)
-        
         path.addLine(to: thirdPoint)
         
         return path
